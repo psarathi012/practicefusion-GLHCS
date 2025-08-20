@@ -1,0 +1,160 @@
+import streamlit as st
+import requests
+import pandas as pd
+import psycopg2
+import os
+from datetime import date
+from dotenv import load_dotenv
+
+load_dotenv()  # Load environment variables from .env file
+
+# Add this right after load_dotenv() to debug
+
+
+
+# ---------- CONFIG ----------
+BASE_URL = "https://static.practicefusion.com"
+
+def get_db_connection():
+    return psycopg2.connect(
+        host=os.getenv("HOST"),
+        port=os.getenv("port"),
+        dbname=os.getenv("DB"),
+        user=os.getenv("USER"),
+        password=os.getenv("PASS")
+    )
+# 🔹 Fetch latest session from DB
+def get_latest_session():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT cookie, csrf_token 
+        FROM sessions
+        WHERE expires_at > NOW()
+        ORDER BY expires_at DESC
+        LIMIT 1;
+    """)
+    row = cur.fetchone()
+    cur.close()
+    conn.close()
+    return row if row else None
+
+
+# ---------- STREAMLIT UI ----------
+st.title("Patient Dashboard")
+st.write("Fetch patients with insurance and visit details")
+
+# Date range picker
+start_date, end_date = st.date_input(
+    "Select Date Range",
+    [date(2025, 7, 31), date(2025, 8, 20)]  # default
+)
+
+if st.button("Fetch Patients"):
+    st.write("Fetching data...",os.getenv("host"))
+    with st.status("Fetching data...", expanded=True) as status:
+        session = get_latest_session()
+        if not session:
+            st.error("⚠️ No valid session found in DB")
+        else:
+            cookie_string, csrf_token = session
+            st.write("✅ Got session from DB")
+
+            # Example API call
+            HEADERS = {
+                "accept": "application/json",
+                "content-type": "application/json; charset=UTF-8",
+                "cookie": cookie_string,
+                "authorization": csrf_token,
+                
+            }
+        # Step 1: Fetch patients
+        payload = {
+            "startMinimumDateTimeUtc": f"{start_date}T00:00:00.000Z",
+            "startMaximumDateTimeUtc": f"{end_date}T23:59:59.999Z"
+        }
+
+       
+        all_patients = []
+        page = 0
+        page_size = 50
+
+        while True:
+            resp = requests.post(
+                f"{BASE_URL}/ScheduleEndpoint/api/v1/Schedule/Report/{page}/{page_size}",
+                headers=HEADERS,
+                json=payload
+            )
+
+            if resp.status_code != 200:
+                st.error(f"Failed to fetch patients on page {page}: {resp.text}")
+                break
+
+            patients = resp.json().get("scheduledEventList", [])
+            if not patients:  # no more data
+                break
+
+            all_patients.extend(patients)
+            page += 1  # move to next page
+
+        if resp.status_code != 200:
+            st.error(f"Failed to fetch patients: {resp.text}")
+        if not all_patients:
+            st.error("No patients found.")
+        else:
+
+            st.write(f"✅ Fetched {len(all_patients)} patients")
+
+            data = []
+            for p in all_patients:
+                patient_uid = p.get("patientPracticeGuid")
+                name = p.get("patientName")
+                Dob = p.get("patientDateOfBirthDateTime")
+                Phone = p.get("patientMobilePhone")
+                AppointmentType = p.get("appointmentTypeName")
+                StartTime = p.get("startAtDateTimeFlt")
+                Status = p.get("status")
+
+                # Step 2: Insurance details
+                ins_resp = requests.get(
+                    f"https://static.practicefusion.com/PatientEndpoint/api/v1/patients/{patient_uid}/patientRibbonInfo",
+                    headers=HEADERS,
+                )
+                insurance = ins_resp.json() if ins_resp.status_code == 200 else {}
+
+                # Step 3: Visit details
+                transcript_resp = requests.get(
+                    f"https://static.practicefusion.com/ChartingEndpoint/api/v4/patients/{patient_uid}/transcriptSummaries",
+                    headers=HEADERS,
+                )
+                transcripts = transcript_resp.json().get("transcriptDisplaySummaries", []) if transcript_resp.status_code == 200 else []
+
+                # Store all transcripts as JSON
+                all_transcripts = []
+                for t in transcripts:
+                    transcript_date = t.get("dateOfServiceLocal", "N/A")
+                    transcript_type = t.get("encounterTypeEncounterEventTypeName", "N/A")
+                    all_transcripts.append(f"{transcript_date} - {transcript_type}")
+
+                # Join them as one string (or keep as list if you prefer)
+                transcripts_str = "; ".join(all_transcripts) if all_transcripts else "N/A"
+
+                # Create one row per patient with all transcripts
+                data.append({
+                    "Patient UID": patient_uid,
+                    "Name": name,
+                    "DOB": Dob,
+                    "Phone": Phone,
+                    "Appointment Type": AppointmentType,
+                    "Start Time": StartTime,
+                    "Status": Status,
+                    "All Transcripts": transcripts_str,
+                    "Insurance": insurance
+                })
+
+            # Step 4: Show in table
+            df = pd.DataFrame(data)
+            st.dataframe(df)
+
+            status.update(label="✅ All data fetched successfully!", state="complete")
+
