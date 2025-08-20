@@ -17,11 +17,11 @@ BASE_URL = "https://static.practicefusion.com"
 
 def get_db_connection():
     return psycopg2.connect(
-        host=os.getenv("HOST"),
-        port=os.getenv("port"),
-        dbname=os.getenv("DB"),
-        user=os.getenv("USER"),
-        password=os.getenv("PASS")
+        host=st.secrets["database"]["host"],
+        port=st.secrets["database"]["port"],
+        dbname=st.secrets["database"]["dbname"],
+        user=st.secrets["database"]["user"],
+        password=st.secrets["database"]["password"]
     )
 # 🔹 Fetch latest session from DB
 def get_latest_session():
