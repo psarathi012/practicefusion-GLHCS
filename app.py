@@ -22,6 +22,7 @@ def get_db_connection():
         dbname=st.secrets["database"]["dbname"],
         user=st.secrets["database"]["user"],
         password=st.secrets["database"]["password"]
+       
     )
 # 🔹 Fetch latest session from DB
 def get_latest_session():
@@ -109,7 +110,18 @@ if st.button("Fetch Patients"):
             for p in all_patients:
                 patient_uid = p.get("patientPracticeGuid")
                 name = p.get("patientName")
+                # Extract DOB as date only
                 Dob = p.get("patientDateOfBirthDateTime")
+                if Dob:
+                    # Parse the datetime and extract just the date part
+                    try:
+                        from datetime import datetime
+                        dob_datetime = datetime.fromisoformat(Dob.replace('Z', '+00:00'))
+                        Dob = dob_datetime.strftime('%Y-%m-%d')  # Format as YYYY-MM-DD
+                    except:
+                        Dob = "N/A"  # If parsing fails, keep as N/A
+                else:
+                    Dob = "N/A"
                 Phone = p.get("patientMobilePhone")
                 AppointmentType = p.get("appointmentTypeName")
                 StartTime = p.get("startAtDateTimeFlt")
@@ -121,6 +133,25 @@ if st.button("Fetch Patients"):
                     headers=HEADERS,
                 )
                 insurance = ins_resp.json() if ins_resp.status_code == 200 else {}
+
+                # Extract insurance information
+                primary_insurance = "N/A"
+                primary_insurance_id = "N/A"
+                secondary_insurance = "N/A"
+                secondary_insurance_id = "N/A"
+
+                if insurance:
+                    # Primary insurance
+                    primary_plan = insurance.get("primaryInsurancePlan", {})
+                    if primary_plan:
+                        primary_insurance = primary_plan.get("payerName", "N/A")
+                        primary_insurance_id = primary_plan.get("policyIdentifier", "N/A")
+                    
+                    # Secondary insurance (if available in the API response)
+                    secondary_plan = insurance.get("secondaryInsurancePlan", {})
+                    if secondary_plan:
+                        secondary_insurance = secondary_plan.get("payerName", "N/A")
+                        secondary_insurance_id = secondary_plan.get("policyIdentifier", "N/A")
 
                 # Step 3: Visit details
                 transcript_resp = requests.get(
@@ -148,6 +179,10 @@ if st.button("Fetch Patients"):
                     "Appointment Type": AppointmentType,
                     "Start Time": StartTime,
                     "Status": Status,
+                    "Primary Insurance": primary_insurance,
+                    "Primary Insurance ID": primary_insurance_id,
+                    "Secondary Insurance": secondary_insurance,
+                    "Secondary Insurance ID": secondary_insurance_id,
                     "All Transcripts": transcripts_str,
                     "Insurance": insurance
                 })
