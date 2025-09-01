@@ -110,6 +110,7 @@ if st.button("Fetch Patients"):
             for p in all_patients:
                 patient_uid = p.get("patientPracticeGuid")
                 name = p.get("patientName")
+                provider=p.get("providerName")
                 # Extract DOB as date only
                 Dob = p.get("patientDateOfBirthDateTime")
                 if Dob:
@@ -174,6 +175,7 @@ if st.button("Fetch Patients"):
                 data.append({
                     "Patient UID": patient_uid,
                     "Name": name,
+                    "Provider": provider,
                     "DOB": Dob,
                     "Phone": Phone,
                     "Appointment Type": AppointmentType,
