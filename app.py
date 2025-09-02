@@ -138,8 +138,10 @@ if st.button("Fetch Patients"):
                 # Extract insurance information
                 primary_insurance = "N/A"
                 primary_insurance_id = "N/A"
-                secondary_insurance = "N/A"
-                secondary_insurance_id = "N/A"
+                # secondary_insurance = "N/A"
+                # secondary_insurance_id = "N/A"
+                secondary_insurance_combined = "N/A"
+
 
                 if insurance:
                     # Primary insurance
@@ -151,8 +153,9 @@ if st.button("Fetch Patients"):
                     # Secondary insurance (if available in the API response)
                     secondary_plan = insurance.get("secondaryInsurancePlan", {})
                     if secondary_plan:
-                        secondary_insurance = secondary_plan.get("payerName", "N/A")
-                        secondary_insurance_id = secondary_plan.get("policyIdentifier", "N/A")
+                        sec_payer = secondary_plan.get("payerName", "N/A")
+                        sec_id = secondary_plan.get("policyIdentifier", "N/A")
+                        secondary_insurance_combined = f"{sec_payer} - {sec_id}" if sec_payer != "N/A" and sec_id != "N/A" else "N/A"
 
                 # Step 3: Visit details
                 transcript_resp = requests.get(
@@ -183,8 +186,7 @@ if st.button("Fetch Patients"):
                     "Status": Status,
                     "Primary Insurance": primary_insurance,
                     "Primary Insurance ID": primary_insurance_id,
-                    "Secondary Insurance": secondary_insurance,
-                    "Secondary Insurance ID": secondary_insurance_id,
+                    "Secondary Insurance + Member ID": secondary_insurance_combined,
                     "All Transcripts": transcripts_str,
                     "Insurance": insurance
                 })
