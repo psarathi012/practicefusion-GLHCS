@@ -169,45 +169,87 @@ if st.button("Fetch Appointments"):
                 st.write(f"Bootstrap API response status: {bootstrap_resp.status_code}")
                 
                 if bootstrap_resp.status_code == 200:
-                    bootstrap_data = bootstrap_resp.json()
-                    
-                    # Debug the structure of the response
-                    st.write("Bootstrap API response structure:")
-                    st.write(f"Keys in response: {list(bootstrap_data.keys())}")
-                    
-                    if "body" in bootstrap_data:
-                        st.write(f"Keys in body: {list(bootstrap_data['body'].keys())}")
+                    try:
+                        # Try to parse the JSON response
+                        bootstrap_data = bootstrap_resp.json()
                         
-                        if "results" in bootstrap_data["body"]:
-                            bootstrap_appointments = bootstrap_data["body"]["results"]
-                            st.write(f"Number of appointments in Bootstrap response: {len(bootstrap_appointments)}")
+                        # Debug the response content first
+                        st.write("Bootstrap API raw response content (first 500 chars):")
+                        response_text = bootstrap_resp.text
+                        st.write(response_text[:500] + "..." if len(response_text) > 500 else response_text)
+                        
+                        # Debug the structure of the response
+                        st.write("Bootstrap API response structure:")
+                        
+                        # Check if bootstrap_data is a dictionary
+                        if isinstance(bootstrap_data, dict):
+                            st.write(f"Keys in response: {list(bootstrap_data.keys())}")
                             
-                            # Show the first appointment structure if available
-                            if bootstrap_appointments:
-                                st.write("Example appointment structure:")
-                                st.write(f"Keys in first appointment: {list(bootstrap_appointments[0].keys())}")
-                                
-                                # Check if patientSummary exists
-                                if "patientSummary" in bootstrap_appointments[0]:
-                                    st.write(f"Keys in patientSummary: {list(bootstrap_appointments[0]['patientSummary'].keys())}")
-                            
-                            for bootstrap_appt in bootstrap_appointments:
-                                appt_uuid = bootstrap_appt.get("appointmentUUID")
-                                appointment_mode = bootstrap_appt.get("appointmentMode", "N/A")
-                                appointment_mode_map[appt_uuid] = appointment_mode
-                                
-                                # Extract patient info if available
-                                patient_summary = bootstrap_appt.get("patientSummary")
-                                if patient_summary:
-                                    patient_guid = patient_summary.get("guid")
-                                    patient_id = patient_summary.get("patientId", "N/A")
-                                    if patient_guid:
-                                        patient_id_map[patient_guid] = patient_id
-                                        st.write(f"Mapped patient GUID {patient_guid} to ID {patient_id}")
+                            if "body" in bootstrap_data:
+                                # Check if body is a dictionary
+                                if isinstance(bootstrap_data["body"], dict):
+                                    st.write(f"Keys in body: {list(bootstrap_data['body'].keys())}")
+                                    
+                                    if "results" in bootstrap_data["body"]:
+                                        bootstrap_appointments = bootstrap_data["body"]["results"]
+                                        
+                                        # Check if results is a list
+                                        if isinstance(bootstrap_appointments, list):
+                                            st.write(f"Number of appointments in Bootstrap response: {len(bootstrap_appointments)}")
+                                            
+                                            # Show the first appointment structure if available
+                                            if bootstrap_appointments:
+                                                st.write("Example appointment structure:")
+                                                if isinstance(bootstrap_appointments[0], dict):
+                                                    st.write(f"Keys in first appointment: {list(bootstrap_appointments[0].keys())}")
+                                                    
+                                                    # Check if patientSummary exists
+                                                    if "patientSummary" in bootstrap_appointments[0]:
+                                                        if isinstance(bootstrap_appointments[0]["patientSummary"], dict):
+                                                            st.write(f"Keys in patientSummary: {list(bootstrap_appointments[0]['patientSummary'].keys())}")
+                                                        else:
+                                                            st.write("patientSummary is not a dictionary")
+                                                else:
+                                                    st.write("First appointment is not a dictionary")
+                                            
+                                            for bootstrap_appt in bootstrap_appointments:
+                                                if not isinstance(bootstrap_appt, dict):
+                                                    continue
+                                                    
+                                                appt_uuid = bootstrap_appt.get("appointmentUUID")
+                                                appointment_mode = bootstrap_appt.get("appointmentMode", "N/A")
+                                                if appt_uuid:
+                                                    appointment_mode_map[appt_uuid] = appointment_mode
+                                                
+                                                # Extract patient info if available
+                                                patient_summary = bootstrap_appt.get("patientSummary")
+                                                if patient_summary and isinstance(patient_summary, dict):
+                                                    patient_guid = patient_summary.get("guid")
+                                                    patient_id = patient_summary.get("patientId", "N/A")
+                                                    if patient_guid:
+                                                        patient_id_map[patient_guid] = patient_id
+                                                        st.write(f"Mapped patient GUID {patient_guid} to ID {patient_id}")
+                                        else:
+                                            st.write("Results is not a list")
+                                    else:
+                                        st.write("No 'results' found in the body")
+                                else:
+                                    st.write("Body is not a dictionary")
+                            else:
+                                st.write("No 'body' found in the response")
+                        elif isinstance(bootstrap_data, list):
+                            st.write("Response is a list with length:", len(bootstrap_data))
+                            if bootstrap_data:
+                                st.write("First item type:", type(bootstrap_data[0]).__name__)
+                                if isinstance(bootstrap_data[0], dict):
+                                    st.write(f"Keys in first item: {list(bootstrap_data[0].keys())}")
                         else:
-                            st.write("No 'results' found in the body")
-                    else:
-                        st.write("No 'body' found in the response")
+                            st.write(f"Response is not a dictionary or list, type: {type(bootstrap_data).__name__}")
+                    except Exception as e:
+                        st.error(f"Error parsing Bootstrap API response: {str(e)}")
+                        st.write("Response content (first 500 chars):")
+                        response_text = bootstrap_resp.text
+                        st.write(response_text[:500] + "..." if len(response_text) > 500 else response_text)
                 else:
                     st.error(f"Bootstrap API call failed with status {bootstrap_resp.status_code}")
                     st.write(f"Error response: {bootstrap_resp.text}")
