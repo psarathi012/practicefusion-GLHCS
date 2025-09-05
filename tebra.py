@@ -418,12 +418,16 @@ if st.button("Fetch Appointments"):
                             
                             # Extract the alert message
                             if isinstance(alert_data, dict) and "alertMessage" in alert_data:
-                                patient_alerts_map[patient_guid] = alert_data["alertMessage"]
+                                # Clean up the alert message - replace multiple newlines with a single space
+                                alert_message = alert_data["alertMessage"]
+                                # Replace all newlines and multiple spaces with a single space
+                                alert_message = ' '.join(alert_message.replace('\n', ' ').split())
+                                patient_alerts_map[patient_guid] = alert_message
                                 alert_count += 1
-                                st.write(f"Found alert message: {alert_data['alertMessage']}")
+                                st.write(f"Found alert message: {alert_message}")
                             else:
                                 # Try second URL format (plural "alerts")
-                                alert_url2 = f"{BASE_URL}/billing-profiles-ui/api/PatientAlert/patientguid/{patient_guid}/alerts"
+                                alert_url2 = f"{BASE_URL}/billing-profiles-ui/api/PatientAlert/{patient_guid}/alerts"
                                 st.write(f"First format didn't have alertMessage, trying URL: {alert_url2}")
                                 
                                 alert_resp2 = requests.get(
@@ -441,9 +445,13 @@ if st.button("Fetch Appointments"):
                                     if isinstance(alert_data2, list) and alert_data2:
                                         # Take the first alert message
                                         if isinstance(alert_data2[0], dict) and "alertMessage" in alert_data2[0]:
-                                            patient_alerts_map[patient_guid] = alert_data2[0]["alertMessage"]
+                                            # Clean up the alert message - replace multiple newlines with a single space
+                                            alert_message = alert_data2[0]["alertMessage"]
+                                            # Replace all newlines and multiple spaces with a single space
+                                            alert_message = ' '.join(alert_message.replace('\n', ' ').split())
+                                            patient_alerts_map[patient_guid] = alert_message
                                             alert_count += 1
-                                            st.write(f"Found alert message from second format: {alert_data2[0]['alertMessage']}")
+                                            st.write(f"Found alert message from second format: {alert_message}")
                                         else:
                                             patient_alerts_map[patient_guid] = "N/A"
                                     else:
@@ -458,11 +466,6 @@ if st.button("Fetch Appointments"):
                     
                     # Add a small delay to avoid rate limiting
                     time.sleep(0.1)
-                    
-                    # Only process a few patients in debug mode to avoid overwhelming the UI
-                    if len(patient_alerts_map) >= 5:
-                        st.write("Limiting to 5 patients for debugging")
-                        break
                 
                 st.write(f"Fetched alerts for {len(patient_alerts_map)} patients, found {alert_count} actual alert messages")
                 
