@@ -334,6 +334,48 @@ if st.button("Fetch Appointments"):
                 st.write(f"Number of appointment UUIDs mapped: {len(appointment_mode_map)}")
                 # st.write(f"Appointment UUID map keys: {list(appointment_mode_map.keys())[:5] if len(appointment_mode_map) > 5 else list(appointment_mode_map.keys())}")
                 
+                # Fetch insurance details for each patient
+                st.write("Fetching insurance details for patients...")
+                
+                # Create a dictionary to store insurance details
+                insurance_details_map = {}
+                
+                # Process only unique patient IDs to avoid duplicate API calls
+                unique_patient_ids = set()
+                for patient_guid, patient_id in patient_id_map.items():
+                    if patient_id != "N/A" and isinstance(patient_id, (int, str)):
+                        unique_patient_ids.add(str(patient_id))
+                
+                st.write(f"Found {len(unique_patient_ids)} unique patient IDs")
+                
+                # Fetch insurance details for each patient ID
+                for patient_id in unique_patient_ids:
+                    try:
+                        # Make API call to get insurance details
+                        insurance_resp = requests.get(
+                            f"{BASE_URL}/billing-profiles-ui/api/BillingProfile/patient/{patient_id}",
+                            headers=HEADERS
+                        )
+                        
+                        if insurance_resp.status_code == 200:
+                            # Parse the insurance data
+                            insurance_data = insurance_resp.json()
+                            
+                            # Store the insurance details
+                            insurance_details_map[patient_id] = insurance_data
+                            
+                            # Debug info
+                            st.write(f"✅ Fetched insurance details for patient ID: {patient_id}")
+                        else:
+                            st.write(f"⚠️ Failed to fetch insurance details for patient ID {patient_id}: {insurance_resp.status_code}")
+                    except Exception as e:
+                        st.write(f"❌ Error fetching insurance details for patient ID {patient_id}: {str(e)}")
+                    
+                    # Add a small delay to avoid rate limiting
+                    time.sleep(0.1)
+                
+                st.write(f"Fetched insurance details for {len(insurance_details_map)} patients")
+                
                 for appt in appointment_list:
                     # Extract basic appointment info
                     appt_id = appt.get("pmAppointmentId")
@@ -394,12 +436,78 @@ if st.button("Fetch Appointments"):
                         except:
                             dob = "N/A"
                     
-                    # Extract insurance info if available
-                    primary_insurance = appt.get("primaryInsurancePlanName", "N/A")
-                    primary_policy = appt.get("primaryInsurancePolicyNumber", "N/A")
-                    secondary_insurance = appt.get("secondaryInsurancePlanName", "N/A")
-                    secondary_policy = appt.get("secondaryInsurancePolicyNumber", "N/A")
+                    # Extract basic insurance info from appointment data
+                    basic_primary_insurance = appt.get("primaryInsurancePlanName", "N/A")
+                    basic_primary_policy = appt.get("primaryInsurancePolicyNumber", "N/A")
+                    basic_secondary_insurance = appt.get("secondaryInsurancePlanName", "N/A")
+                    basic_secondary_policy = appt.get("secondaryInsurancePolicyNumber", "N/A")
                     
+                    # Extract detailed insurance info if available
+                    primary_insurance = basic_primary_insurance
+                    primary_policy = basic_primary_policy
+                    primary_policy_start = "N/A"
+                    primary_policy_end = "N/A"
+                    secondary_insurance = basic_secondary_insurance
+                    secondary_policy = basic_secondary_policy
+                    secondary_policy_start = "N/A"
+                    secondary_policy_end = "N/A"
+                    
+                    # Get detailed insurance information from the billing profiles API
+                    if patient_id != "N/A" and str(patient_id) in insurance_details_map:
+                        insurance_details = insurance_details_map[str(patient_id)]
+                        
+                        # Extract patient case information (insurance details)
+                        if "patientCases" in insurance_details and insurance_details["patientCases"]:
+                            # Get the first patient case (usually the active one)
+                            patient_case = insurance_details["patientCases"][0]
+                            
+                            # Check if policies exist
+                            if "policies" in patient_case:
+                                policies = patient_case["policies"]
+                                
+                                # Primary insurance (key "1")
+                                if "1" in policies:
+                                    primary_policy_info = policies["1"]
+                                    primary_insurance = primary_policy_info.get("planName", basic_primary_insurance)
+                                    
+                                    # Get policy dates if available
+                                    primary_policy_start = primary_policy_info.get("policyStartDate", "N/A")
+                                    primary_policy_end = primary_policy_info.get("policyEndDate", "N/A")
+                                    
+                                    # Format dates if they're not None
+                                    if primary_policy_start:
+                                        try:
+                                            primary_policy_start = datetime.fromisoformat(primary_policy_start.replace('Z', '+00:00')).strftime('%Y-%m-%d')
+                                        except:
+                                            pass
+                                    
+                                    if primary_policy_end:
+                                        try:
+                                            primary_policy_end = datetime.fromisoformat(primary_policy_end.replace('Z', '+00:00')).strftime('%Y-%m-%d')
+                                        except:
+                                            pass
+                                
+                                # Secondary insurance (key "2")
+                                if "2" in policies:
+                                    secondary_policy_info = policies["2"]
+                                    secondary_insurance = secondary_policy_info.get("planName", basic_secondary_insurance)
+                                    
+                                    # Get policy dates if available
+                                    secondary_policy_start = secondary_policy_info.get("policyStartDate", "N/A")
+                                    secondary_policy_end = secondary_policy_info.get("policyEndDate", "N/A")
+                                    
+                                    # Format dates if they're not None
+                                    if secondary_policy_start:
+                                        try:
+                                            secondary_policy_start = datetime.fromisoformat(secondary_policy_start.replace('Z', '+00:00')).strftime('%Y-%m-%d')
+                                        except:
+                                            pass
+                                    
+                                    if secondary_policy_end:
+                                        try:
+                                            secondary_policy_end = datetime.fromisoformat(secondary_policy_end.replace('Z', '+00:00')).strftime('%Y-%m-%d')
+                                        except:
+                                            pass
                    
                     # Add to data collection
                     data.append({
@@ -414,8 +522,12 @@ if st.button("Fetch Appointments"):
                         "Appointment Mode": appointment_mode,
                         "Primary Insurance": primary_insurance,
                         "Primary Policy Number": primary_policy,
+                        "Primary Policy Start": primary_policy_start,
+                        "Primary Policy End": primary_policy_end,
                         "Secondary Insurance": secondary_insurance,
                         "Secondary Policy Number": secondary_policy,
+                        "Secondary Policy Start": secondary_policy_start,
+                        "Secondary Policy End": secondary_policy_end,
                         "Phone": phone
                     })
                 
