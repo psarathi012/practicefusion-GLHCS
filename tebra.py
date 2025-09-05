@@ -228,7 +228,7 @@ if st.button("Fetch Appointments"):
                                                     patient_id = patient_summary.get("patientId", "N/A")
                                                     if patient_guid:
                                                         patient_id_map[patient_guid] = patient_id
-                                                        st.write(f"Mapped patient GUID {patient_guid} to ID {patient_id}")
+                                                        # st.write(f"Mapped patient GUID {patient_guid} to ID {patient_id}")
                                         else:
                                             st.write("Results is not a list")
                                     else:
@@ -270,7 +270,7 @@ if st.button("Fetch Appointments"):
                                                             patient_id = patient_summary.get("patientId", "N/A")
                                                             if patient_guid and patient_id != "N/A":
                                                                 patient_id_map[patient_guid] = patient_id
-                                                                st.write(f"Mapped patient GUID {patient_guid} to ID {patient_id}")
+                                                                # st.write(f"Mapped patient GUID {patient_guid} to ID {patient_id}")
                         else:
                             st.write(f"Response is not a dictionary or list, type: {type(bootstrap_data).__name__}")
                     except Exception as e:
