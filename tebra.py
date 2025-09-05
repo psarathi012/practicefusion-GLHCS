@@ -226,4 +226,7 @@ if st.button("Fetch Appointments"):
                 else:
                     st.warning("No appointment data to display.")
                 
-                status.update(label="✅ All data fetched successfully!", state="complete")
+                try:
+                    status.update(label="✅ All data fetched successfully!", state="complete")
+                except Exception as e:
+                    st.success("✅ All data fetched successfully!")
