@@ -164,31 +164,73 @@ if st.button("Fetch Appointments"):
                 patient_id_map = {}
                 appointment_mode_map = {}
                 
+                # Debug information
+                st.write(f"Bootstrap API response status: {bootstrap_resp.status_code}")
+                
                 if bootstrap_resp.status_code == 200:
                     bootstrap_data = bootstrap_resp.json()
-                    if bootstrap_data and "body" in bootstrap_data and "results" in bootstrap_data["body"]:
-                        bootstrap_appointments = bootstrap_data["body"]["results"]
+                    
+                    # Debug the structure of the response
+                    st.write("Bootstrap API response structure:")
+                    st.write(f"Keys in response: {list(bootstrap_data.keys())}")
+                    
+                    if "body" in bootstrap_data:
+                        st.write(f"Keys in body: {list(bootstrap_data['body'].keys())}")
                         
-                        for bootstrap_appt in bootstrap_appointments:
-                            appt_uuid = bootstrap_appt.get("appointmentUUID")
-                            appointment_mode = bootstrap_appt.get("appointmentMode", "N/A")
-                            appointment_mode_map[appt_uuid] = appointment_mode
+                        if "results" in bootstrap_data["body"]:
+                            bootstrap_appointments = bootstrap_data["body"]["results"]
+                            st.write(f"Number of appointments in Bootstrap response: {len(bootstrap_appointments)}")
                             
-                            # Extract patient info if available
-                            patient_summary = bootstrap_appt.get("patientSummary")
-                            if patient_summary:
-                                patient_guid = patient_summary.get("guid")
-                                patient_id = patient_summary.get("patientId", "N/A")
-                                if patient_guid:
-                                    patient_id_map[patient_guid] = patient_id
+                            # Show the first appointment structure if available
+                            if bootstrap_appointments:
+                                st.write("Example appointment structure:")
+                                st.write(f"Keys in first appointment: {list(bootstrap_appointments[0].keys())}")
+                                
+                                # Check if patientSummary exists
+                                if "patientSummary" in bootstrap_appointments[0]:
+                                    st.write(f"Keys in patientSummary: {list(bootstrap_appointments[0]['patientSummary'].keys())}")
+                            
+                            for bootstrap_appt in bootstrap_appointments:
+                                appt_uuid = bootstrap_appt.get("appointmentUUID")
+                                appointment_mode = bootstrap_appt.get("appointmentMode", "N/A")
+                                appointment_mode_map[appt_uuid] = appointment_mode
+                                
+                                # Extract patient info if available
+                                patient_summary = bootstrap_appt.get("patientSummary")
+                                if patient_summary:
+                                    patient_guid = patient_summary.get("guid")
+                                    patient_id = patient_summary.get("patientId", "N/A")
+                                    if patient_guid:
+                                        patient_id_map[patient_guid] = patient_id
+                                        st.write(f"Mapped patient GUID {patient_guid} to ID {patient_id}")
+                        else:
+                            st.write("No 'results' found in the body")
+                    else:
+                        st.write("No 'body' found in the response")
+                else:
+                    st.error(f"Bootstrap API call failed with status {bootstrap_resp.status_code}")
+                    st.write(f"Error response: {bootstrap_resp.text}")
                 
                 # Process appointments
                 data = []
+                
+                # Debug patient GUID mapping
+                st.write(f"Number of patient GUIDs mapped: {len(patient_id_map)}")
+                st.write(f"Patient GUID map keys: {list(patient_id_map.keys())[:5] if len(patient_id_map) > 5 else list(patient_id_map.keys())}")
+                
+                # Debug appointment UUID mapping
+                st.write(f"Number of appointment UUIDs mapped: {len(appointment_mode_map)}")
+                st.write(f"Appointment UUID map keys: {list(appointment_mode_map.keys())[:5] if len(appointment_mode_map) > 5 else list(appointment_mode_map.keys())}")
+                
                 for appt in appointment_list:
                     # Extract basic appointment info
                     appt_id = appt.get("pmAppointmentId")
                     patient_guid = appt.get("patientGuid")
                     appt_uuid = appt.get("appointmentGuid")
+                    
+                    # Debug individual mapping
+                    if patient_guid and patient_guid not in patient_id_map:
+                        st.write(f"Patient GUID not found in map: {patient_guid}")
                     
                     # Get patient ID from mapping
                     patient_id = patient_id_map.get(patient_guid, "N/A")
