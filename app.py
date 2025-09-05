@@ -173,6 +173,16 @@ if st.button("Fetch Patients"):
 
                 # Join them as one string (or keep as list if you prefer)
                 transcripts_str = "; ".join(all_transcripts) if all_transcripts else "N/A"
+                
+                # Step 3.5: Fetch patient notes
+                patient_details_resp = requests.get(
+                    f"https://static.practicefusion.com/PatientEndpoint/api/v3/patients/{patient_uid}",
+                    headers=HEADERS,
+                )
+                patient_notes = "N/A"
+                if patient_details_resp.status_code == 200:
+                    patient_data = patient_details_resp.json()
+                    patient_notes = patient_data.get("patient", {}).get("notes", "N/A")
 
                 # Create one row per patient with all transcripts
                 data.append({
@@ -188,6 +198,7 @@ if st.button("Fetch Patients"):
                     "Primary Insurance ID": primary_insurance_id,
                     "Secondary Insurance + Member ID": secondary_insurance_combined,
                     "All Transcripts": transcripts_str,
+                    "Patient Notes": patient_notes,
                     "Insurance": insurance
                 })
 
