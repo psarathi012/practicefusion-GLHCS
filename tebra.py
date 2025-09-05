@@ -137,12 +137,64 @@ if st.button("Fetch Appointments"):
                 appointment_list = appointments.get("data", [])
                 st.write(f"✅ Fetched {len(appointment_list)} appointments")
 
+                # Fetch additional appointment details from Bootstrap API
+                st.write("Fetching additional appointment details...")
+                
+                # Prepare payload for Bootstrap API
+                bootstrap_payload = [
+                    {
+                        "resource": "ApptWithMode",
+                        "query": {
+                            "minDate": start_timestamp,
+                            "maxDate": end_timestamp,
+                            "deleted": False,
+                            "maxDaysPerPage": 5
+                        }
+                    }
+                ]
+                
+                # Make the API call to Bootstrap
+                bootstrap_resp = requests.post(
+                    f"{BASE_URL}/dashboard-calendar-ui/api/BootStrap/",
+                    headers=HEADERS,
+                    json=bootstrap_payload
+                )
+                
+                # Create a mapping of patient GUIDs to patient IDs
+                patient_id_map = {}
+                appointment_mode_map = {}
+                
+                if bootstrap_resp.status_code == 200:
+                    bootstrap_data = bootstrap_resp.json()
+                    if bootstrap_data and "body" in bootstrap_data and "results" in bootstrap_data["body"]:
+                        bootstrap_appointments = bootstrap_data["body"]["results"]
+                        
+                        for bootstrap_appt in bootstrap_appointments:
+                            appt_uuid = bootstrap_appt.get("appointmentUUID")
+                            appointment_mode = bootstrap_appt.get("appointmentMode", "N/A")
+                            appointment_mode_map[appt_uuid] = appointment_mode
+                            
+                            # Extract patient info if available
+                            patient_summary = bootstrap_appt.get("patientSummary")
+                            if patient_summary:
+                                patient_guid = patient_summary.get("guid")
+                                patient_id = patient_summary.get("patientId", "N/A")
+                                if patient_guid:
+                                    patient_id_map[patient_guid] = patient_id
+                
                 # Process appointments
                 data = []
                 for appt in appointment_list:
                     # Extract basic appointment info
                     appt_id = appt.get("pmAppointmentId")
                     patient_guid = appt.get("patientGuid")
+                    appt_uuid = appt.get("appointmentGuid")
+                    
+                    # Get patient ID from mapping
+                    patient_id = patient_id_map.get(patient_guid, "N/A")
+                    
+                    # Get appointment mode from mapping
+                    appointment_mode = appointment_mode_map.get(appt_uuid, "N/A")
                     
                     # Patient name - combine first, middle, last
                     first_name = appt.get("patientFirstName", "")
@@ -198,11 +250,14 @@ if st.button("Fetch Appointments"):
                     # Add to data collection
                     data.append({
                         "Appointment ID": appt_id,
+                        "Patient ID": patient_id,
+                        "Patient GUID": patient_guid,
                         "Patient Name": patient_name,
                         "DOB": dob,
                         "Provider": provider_name,
                         "Start Time": start_time,
                         "Appointment Type": appointment_type,
+                        "Appointment Mode": appointment_mode,
                         "Primary Insurance": primary_insurance,
                         "Primary Policy Number": primary_policy,
                         "Secondary Insurance": secondary_insurance,
