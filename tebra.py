@@ -48,10 +48,11 @@ def date_to_ms_timestamp(input_date):
 st.title("Tebra Patient Dashboard")
 st.write("Fetch appointments and patient details from Kareo/Tebra")
 
-# Date picker
-selected_date = st.date_input(
-    "Select Date",
-    date.today() + timedelta(days=30)  # Default to 30 days from now
+# Date range picker
+start_date, end_date = st.date_input(
+    "Select Date Range",
+    [date.today(), date.today() + timedelta(days=30)],  # Default to today through 30 days from now
+    format="YYYY-MM-DD"
 )
 
 if st.button("Fetch Appointments"):
@@ -61,15 +62,16 @@ if st.button("Fetch Appointments"):
         if not session:
             st.error("⚠️ No valid session found in DB")
         else:
-            cookie_string = session
+            # Extract cookie string from session tuple
+            cookie_string = session[0]  # First element of the tuple
             st.write("✅ Got session from DB")
 
-            # Calculate start and end timestamps for the selected date
-            start_date = datetime.combine(selected_date, datetime.min.time())
-            end_date = datetime.combine(selected_date, datetime.max.time())
+            # Calculate start and end timestamps for the selected date range
+            start_datetime = datetime.combine(start_date, datetime.min.time())
+            end_datetime = datetime.combine(end_date, datetime.max.time())
             
-            start_timestamp = date_to_ms_timestamp(start_date)
-            end_timestamp = date_to_ms_timestamp(end_date)
+            start_timestamp = date_to_ms_timestamp(start_datetime)
+            end_timestamp = date_to_ms_timestamp(end_datetime)
 
             # Headers for API request
             HEADERS = {
@@ -218,7 +220,7 @@ if st.button("Fetch Appointments"):
                         st.download_button(
                             label="Download data as CSV",
                             data=csv,
-                            file_name=f"tebra_appointments_{selected_date}.csv",
+                            file_name=f"tebra_appointments_{start_date}_to_{end_date}.csv",
                             mime="text/csv",
                         )
                     else:
