@@ -226,4 +226,5 @@ if st.button("Fetch Appointments"):
                     else:
                         st.warning("No appointment data to display.")
                     
+                    # Update status inside the context manager
                     status.update(label="✅ All data fetched successfully!", state="complete")
