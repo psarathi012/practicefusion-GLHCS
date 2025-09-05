@@ -365,7 +365,6 @@ if st.button("Fetch Appointments"):
                             insurance_details_map[patient_id] = insurance_data
                             
                             # Debug info
-                            st.write(f"✅ Fetched insurance details for patient ID: {patient_id}")
                         else:
                             st.write(f"⚠️ Failed to fetch insurance details for patient ID {patient_id}: {insurance_resp.status_code}")
                     except Exception as e:
@@ -445,12 +444,10 @@ if st.button("Fetch Appointments"):
                     # Extract detailed insurance info if available
                     primary_insurance = basic_primary_insurance
                     primary_policy = basic_primary_policy
-                    primary_policy_start = "N/A"
-                    primary_policy_end = "N/A"
+                    
                     secondary_insurance = basic_secondary_insurance
                     secondary_policy = basic_secondary_policy
-                    secondary_policy_start = "N/A"
-                    secondary_policy_end = "N/A"
+                    
                     
                     # Get detailed insurance information from the billing profiles API
                     if patient_id != "N/A" and str(patient_id) in insurance_details_map:
@@ -470,9 +467,6 @@ if st.button("Fetch Appointments"):
                                     primary_policy_info = policies["1"]
                                     primary_insurance = primary_policy_info.get("planName", basic_primary_insurance)
                                     
-                                    # Get policy dates if available
-                                    primary_policy_start = primary_policy_info.get("policyStartDate", "N/A")
-                                    primary_policy_end = primary_policy_info.get("policyEndDate", "N/A")
                                     
                                     # Format dates if they're not None
                                     if primary_policy_start:
@@ -492,9 +486,7 @@ if st.button("Fetch Appointments"):
                                     secondary_policy_info = policies["2"]
                                     secondary_insurance = secondary_policy_info.get("planName", basic_secondary_insurance)
                                     
-                                    # Get policy dates if available
-                                    secondary_policy_start = secondary_policy_info.get("policyStartDate", "N/A")
-                                    secondary_policy_end = secondary_policy_info.get("policyEndDate", "N/A")
+                                  
                                     
                                     # Format dates if they're not None
                                     if secondary_policy_start:
@@ -522,12 +514,8 @@ if st.button("Fetch Appointments"):
                         "Appointment Mode": appointment_mode,
                         "Primary Insurance": primary_insurance,
                         "Primary Policy Number": primary_policy,
-                        "Primary Policy Start": primary_policy_start,
-                        "Primary Policy End": primary_policy_end,
                         "Secondary Insurance": secondary_insurance,
                         "Secondary Policy Number": secondary_policy,
-                        "Secondary Policy Start": secondary_policy_start,
-                        "Secondary Policy End": secondary_policy_end,
                         "Phone": phone
                     })
                 
