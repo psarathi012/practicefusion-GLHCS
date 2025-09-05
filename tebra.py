@@ -166,7 +166,7 @@ if st.button("Fetch Appointments"):
                 appointment_mode_map = {}
                 
                 # Debug information
-                st.write(f"Bootstrap API response status: {bootstrap_resp.status_code}")
+                # st.write(f"Bootstrap API response status: {bootstrap_resp.status_code}")
                 
                 if bootstrap_resp.status_code == 200:
                     try:
@@ -174,9 +174,9 @@ if st.button("Fetch Appointments"):
                         bootstrap_data = bootstrap_resp.json()
                         
                         # Debug the response content first
-                        st.write("Bootstrap API raw response content (first 500 chars):")
+                        # st.write("Bootstrap API raw response content (first 500 chars):")
                         response_text = bootstrap_resp.text
-                        st.write(response_text[:500] + "..." if len(response_text) > 500 else response_text)
+                        # st.write(response_text[:500] + "..." if len(response_text) > 500 else response_text)
                         
                         # Debug the structure of the response
                         st.write("Bootstrap API response structure:")
@@ -386,24 +386,70 @@ if st.button("Fetch Appointments"):
                     if patient_guid:
                         unique_patient_guids.add(patient_guid)
                 
+                st.write(f"Found {len(unique_patient_guids)} unique patient GUIDs for alerts")
+                
+                # Try different URL formats for patient alerts
+                alert_count = 0
+                
                 # Fetch alerts for each patient GUID
                 for patient_guid in unique_patient_guids:
+                    # Debug: Show the GUID we're processing
+                    st.write(f"Processing patient GUID: {patient_guid}")
+                    
+                    # Try first URL format (singular "alert")
                     try:
-                        # Make API call to get patient alerts
+                        # Make API call to get patient alerts - first format
+                        alert_url = f"{BASE_URL}/billing-profiles-ui/api/PatientAlert/patientguid/{patient_guid}/alert"
+                        st.write(f"Trying URL: {alert_url}")
+                        
                         alert_resp = requests.get(
-                            f"{BASE_URL}/billing-profiles-ui/api/PatientAlert/patientguid/{patient_guid}/alert",
+                            alert_url,
                             headers=HEADERS
                         )
+                        
+                        st.write(f"Response status: {alert_resp.status_code}")
                         
                         if alert_resp.status_code == 200:
                             # Parse the alert data
                             alert_data = alert_resp.json()
                             
+                            # Debug: Show the raw response
+                            st.write(f"Alert response (first 200 chars): {str(alert_data)[:200]}")
+                            
                             # Extract the alert message
                             if isinstance(alert_data, dict) and "alertMessage" in alert_data:
                                 patient_alerts_map[patient_guid] = alert_data["alertMessage"]
+                                alert_count += 1
+                                st.write(f"Found alert message: {alert_data['alertMessage']}")
                             else:
-                                patient_alerts_map[patient_guid] = "N/A"
+                                # Try second URL format (plural "alerts")
+                                alert_url2 = f"{BASE_URL}/billing-profiles-ui/api/PatientAlert/patientguid/{patient_guid}/alerts"
+                                st.write(f"First format didn't have alertMessage, trying URL: {alert_url2}")
+                                
+                                alert_resp2 = requests.get(
+                                    alert_url2,
+                                    headers=HEADERS
+                                )
+                                
+                                st.write(f"Second response status: {alert_resp2.status_code}")
+                                
+                                if alert_resp2.status_code == 200:
+                                    alert_data2 = alert_resp2.json()
+                                    st.write(f"Second alert response (first 200 chars): {str(alert_data2)[:200]}")
+                                    
+                                    # Check if it's a list of alerts
+                                    if isinstance(alert_data2, list) and alert_data2:
+                                        # Take the first alert message
+                                        if isinstance(alert_data2[0], dict) and "alertMessage" in alert_data2[0]:
+                                            patient_alerts_map[patient_guid] = alert_data2[0]["alertMessage"]
+                                            alert_count += 1
+                                            st.write(f"Found alert message from second format: {alert_data2[0]['alertMessage']}")
+                                        else:
+                                            patient_alerts_map[patient_guid] = "N/A"
+                                    else:
+                                        patient_alerts_map[patient_guid] = "N/A"
+                                else:
+                                    patient_alerts_map[patient_guid] = "N/A"
                         else:
                             patient_alerts_map[patient_guid] = "N/A"
                     except Exception as e:
@@ -412,8 +458,13 @@ if st.button("Fetch Appointments"):
                     
                     # Add a small delay to avoid rate limiting
                     time.sleep(0.1)
+                    
+                    # Only process a few patients in debug mode to avoid overwhelming the UI
+                    if len(patient_alerts_map) >= 5:
+                        st.write("Limiting to 5 patients for debugging")
+                        break
                 
-                st.write(f"Fetched alerts for {len(patient_alerts_map)} patients")
+                st.write(f"Fetched alerts for {len(patient_alerts_map)} patients, found {alert_count} actual alert messages")
                 
                 for appt in appointment_list:
                     # Extract basic appointment info
