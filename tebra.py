@@ -140,13 +140,13 @@ if st.button("Fetch Appointments"):
                 # Fetch additional appointment details from Bootstrap API
                 st.write("Fetching additional appointment details...")
                 
-                # Prepare payload for Bootstrap API
+                # Prepare payload for Bootstrap API - convert timestamps to strings
                 bootstrap_payload = [
                     {
                         "resource": "ApptWithMode",
                         "query": {
-                            "minDate": start_timestamp,
-                            "maxDate": end_timestamp,
+                            "minDate": str(start_timestamp),
+                            "maxDate": str(end_timestamp),
                             "deleted": False,
                             "maxDaysPerPage": 5
                         }
@@ -260,6 +260,7 @@ if st.button("Fetch Appointments"):
                     # Check if we can find patient IDs in the main response
                     for appt in appointment_list:
                         patient_guid = appt.get("patientGuid")
+                        
                         # Some APIs include patient ID directly in the main response
                         if "patientId" in appt:
                             patient_id = appt.get("patientId")
@@ -272,6 +273,27 @@ if st.button("Fetch Appointments"):
                                 patient_id = patient_data.get("id")
                                 patient_id_map[patient_guid] = patient_id
                                 st.write(f"Found patient ID in patient object: {patient_guid} -> {patient_id}")
+                        # Last resort: Try to extract from URLs or other fields
+                        else:
+                            # Try to find patient ID in any URL fields that might contain it
+                            for key, value in appt.items():
+                                if isinstance(value, str) and "patient" in key.lower() and value.isdigit():
+                                    patient_id = value
+                                    patient_id_map[patient_guid] = patient_id
+                                    st.write(f"Found potential patient ID in field {key}: {patient_guid} -> {patient_id}")
+                            
+                            # If we still don't have an ID, try to generate one from the GUID
+                            if patient_guid and patient_guid not in patient_id_map:
+                                # Extract last part of GUID as a fallback ID
+                                if "-" in patient_guid:
+                                    last_part = patient_guid.split("-")[-1]
+                                    # Convert to a number if possible
+                                    try:
+                                        numeric_id = int(last_part, 16)  # Convert from hex
+                                        patient_id_map[patient_guid] = numeric_id
+                                        st.write(f"Generated patient ID from GUID: {patient_guid} -> {numeric_id}")
+                                    except ValueError:
+                                        pass
                 
                 # Process appointments
                 data = []
