@@ -32,6 +32,7 @@ def get_latest_session():
         SELECT cookie, csrf_token 
         FROM sessions
         WHERE expires_at > NOW()
+        AND source = 'practicefusion'
         ORDER BY expires_at DESC
         LIMIT 1;
     """)
