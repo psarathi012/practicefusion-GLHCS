@@ -243,6 +243,34 @@ if st.button("Fetch Appointments"):
                                 st.write("First item type:", type(bootstrap_data[0]).__name__)
                                 if isinstance(bootstrap_data[0], dict):
                                     st.write(f"Keys in first item: {list(bootstrap_data[0].keys())}")
+                                    
+                                    # Process list-type response
+                                    for item in bootstrap_data:
+                                        if isinstance(item, dict) and "status" in item and item["status"] == 200:
+                                            if "body" in item and isinstance(item["body"], dict) and "results" in item["body"]:
+                                                bootstrap_appointments = item["body"]["results"]
+                                                
+                                                if isinstance(bootstrap_appointments, list):
+                                                    st.write(f"Found {len(bootstrap_appointments)} appointments in list response")
+                                                    
+                                                    # Process appointments
+                                                    for bootstrap_appt in bootstrap_appointments:
+                                                        if not isinstance(bootstrap_appt, dict):
+                                                            continue
+                                                            
+                                                        appt_uuid = bootstrap_appt.get("appointmentUUID")
+                                                        appointment_mode = bootstrap_appt.get("appointmentMode", "N/A")
+                                                        if appt_uuid:
+                                                            appointment_mode_map[appt_uuid] = appointment_mode
+                                                        
+                                                        # Extract patient info if available
+                                                        patient_summary = bootstrap_appt.get("patientSummary")
+                                                        if patient_summary and isinstance(patient_summary, dict):
+                                                            patient_guid = patient_summary.get("guid")
+                                                            patient_id = patient_summary.get("patientId", "N/A")
+                                                            if patient_guid and patient_id != "N/A":
+                                                                patient_id_map[patient_guid] = patient_id
+                                                                st.write(f"Mapped patient GUID {patient_guid} to ID {patient_id}")
                         else:
                             st.write(f"Response is not a dictionary or list, type: {type(bootstrap_data).__name__}")
                     except Exception as e:
