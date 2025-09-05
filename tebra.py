@@ -293,14 +293,14 @@ if st.button("Fetch Appointments"):
                         if "patientId" in appt:
                             patient_id = appt.get("patientId")
                             patient_id_map[patient_guid] = patient_id
-                            st.write(f"Found patient ID in main response: {patient_guid} -> {patient_id}")
+                            # st.write(f"Found patient ID in main response: {patient_guid} -> {patient_id}")
                         # Or it might be embedded in a different field
                         elif "patient" in appt and isinstance(appt.get("patient"), dict):
                             patient_data = appt.get("patient")
                             if "id" in patient_data:
                                 patient_id = patient_data.get("id")
                                 patient_id_map[patient_guid] = patient_id
-                                st.write(f"Found patient ID in patient object: {patient_guid} -> {patient_id}")
+                                # st.write(f"Found patient ID in patient object: {patient_guid} -> {patient_id}")
                         # Last resort: Try to extract from URLs or other fields
                         else:
                             # Try to find patient ID in any URL fields that might contain it
@@ -308,7 +308,7 @@ if st.button("Fetch Appointments"):
                                 if isinstance(value, str) and "patient" in key.lower() and value.isdigit():
                                     patient_id = value
                                     patient_id_map[patient_guid] = patient_id
-                                    st.write(f"Found potential patient ID in field {key}: {patient_guid} -> {patient_id}")
+                                    # st.write(f"Found potential patient ID in field {key}: {patient_guid} -> {patient_id}")
                             
                             # If we still don't have an ID, try to generate one from the GUID
                             if patient_guid and patient_guid not in patient_id_map:
@@ -319,7 +319,7 @@ if st.button("Fetch Appointments"):
                                     try:
                                         numeric_id = int(last_part, 16)  # Convert from hex
                                         patient_id_map[patient_guid] = numeric_id
-                                        st.write(f"Generated patient ID from GUID: {patient_guid} -> {numeric_id}")
+                                        # st.write(f"Generated patient ID from GUID: {patient_guid} -> {numeric_id}")
                                     except ValueError:
                                         pass
                 
@@ -328,11 +328,11 @@ if st.button("Fetch Appointments"):
                 
                 # Debug patient GUID mapping
                 st.write(f"Number of patient GUIDs mapped: {len(patient_id_map)}")
-                st.write(f"Patient GUID map keys: {list(patient_id_map.keys())[:5] if len(patient_id_map) > 5 else list(patient_id_map.keys())}")
+                # st.write(f"Patient GUID map keys: {list(patient_id_map.keys())[:5] if len(patient_id_map) > 5 else list(patient_id_map.keys())}")
                 
                 # Debug appointment UUID mapping
                 st.write(f"Number of appointment UUIDs mapped: {len(appointment_mode_map)}")
-                st.write(f"Appointment UUID map keys: {list(appointment_mode_map.keys())[:5] if len(appointment_mode_map) > 5 else list(appointment_mode_map.keys())}")
+                # st.write(f"Appointment UUID map keys: {list(appointment_mode_map.keys())[:5] if len(appointment_mode_map) > 5 else list(appointment_mode_map.keys())}")
                 
                 for appt in appointment_list:
                     # Extract basic appointment info
