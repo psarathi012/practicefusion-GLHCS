@@ -399,7 +399,7 @@ if st.button("Fetch Appointments"):
                     # Try first URL format (singular "alert")
                     try:
                         # Make API call to get patient alerts - first format
-                        alert_url = f"{BASE_URL}/billing-profiles-ui/api/PatientAlert/patientguid/{patient_guid}/alert"
+                        alert_url = f"{BASE_URL}/billing-profiles-ui/api/PatientAlert/{patient_guid}/alert"
                         st.write(f"Trying URL: {alert_url}")
                         
                         alert_resp = requests.get(
