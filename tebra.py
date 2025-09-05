@@ -337,8 +337,9 @@ if st.button("Fetch Appointments"):
                 # Fetch insurance details for each patient
                 st.write("Fetching insurance details for patients...")
                 
-                # Create a dictionary to store insurance details
+                # Create dictionaries to store patient data
                 insurance_details_map = {}
+                patient_alerts_map = {}
                 
                 # Process only unique patient IDs to avoid duplicate API calls
                 unique_patient_ids = set()
@@ -374,6 +375,45 @@ if st.button("Fetch Appointments"):
                     time.sleep(0.1)
                 
                 st.write(f"Fetched insurance details for {len(insurance_details_map)} patients")
+                
+                # Fetch patient alerts
+                st.write("Fetching patient alerts...")
+                
+                # Collect all unique patient GUIDs
+                unique_patient_guids = set()
+                for appt in appointment_list:
+                    patient_guid = appt.get("patientGuid")
+                    if patient_guid:
+                        unique_patient_guids.add(patient_guid)
+                
+                # Fetch alerts for each patient GUID
+                for patient_guid in unique_patient_guids:
+                    try:
+                        # Make API call to get patient alerts
+                        alert_resp = requests.get(
+                            f"{BASE_URL}/billing-profiles-ui/api/PatientAlert/patientguid/{patient_guid}/alert",
+                            headers=HEADERS
+                        )
+                        
+                        if alert_resp.status_code == 200:
+                            # Parse the alert data
+                            alert_data = alert_resp.json()
+                            
+                            # Extract the alert message
+                            if isinstance(alert_data, dict) and "alertMessage" in alert_data:
+                                patient_alerts_map[patient_guid] = alert_data["alertMessage"]
+                            else:
+                                patient_alerts_map[patient_guid] = "N/A"
+                        else:
+                            patient_alerts_map[patient_guid] = "N/A"
+                    except Exception as e:
+                        st.write(f"❌ Error fetching alerts for patient GUID {patient_guid}: {str(e)}")
+                        patient_alerts_map[patient_guid] = "N/A"
+                    
+                    # Add a small delay to avoid rate limiting
+                    time.sleep(0.1)
+                
+                st.write(f"Fetched alerts for {len(patient_alerts_map)} patients")
                 
                 for appt in appointment_list:
                     # Extract basic appointment info
@@ -477,6 +517,9 @@ if st.button("Fetch Appointments"):
                                     
                                    
                    
+                    # Get patient alert if available
+                    alert_message = patient_alerts_map.get(patient_guid, "N/A")
+                    
                     # Add to data collection
                     data.append({
                         "Appointment ID": appt_id,
@@ -490,10 +533,9 @@ if st.button("Fetch Appointments"):
                         "Appointment Mode": appointment_mode,
                         "Primary Insurance": primary_insurance,
                         "Primary Policy Number": primary_policy,
-                        
                         "Secondary Insurance": secondary_insurance,
                         "Secondary Policy Number": secondary_policy,
-                       
+                        "Alert Message": alert_message,
                         "Phone": phone
                     })
                 
