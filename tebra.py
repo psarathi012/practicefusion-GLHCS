@@ -153,8 +153,9 @@ if st.button("Fetch Appointments"):
                     }
                 ]
                 
-                # Make the API call to Bootstrap
-                bootstrap_resp = requests.post(
+                # Make the API call to Bootstrap using PUT method
+                st.write("Making Bootstrap API call using PUT method...")
+                bootstrap_resp = requests.put(
                     f"{BASE_URL}/dashboard-calendar-ui/api/BootStrap/",
                     headers=HEADERS,
                     json=bootstrap_payload
@@ -210,6 +211,25 @@ if st.button("Fetch Appointments"):
                 else:
                     st.error(f"Bootstrap API call failed with status {bootstrap_resp.status_code}")
                     st.write(f"Error response: {bootstrap_resp.text}")
+                    
+                    # Fallback: Try to extract patient IDs from the main API response if available
+                    st.write("Attempting to extract patient IDs from main API response...")
+                    
+                    # Check if we can find patient IDs in the main response
+                    for appt in appointment_list:
+                        patient_guid = appt.get("patientGuid")
+                        # Some APIs include patient ID directly in the main response
+                        if "patientId" in appt:
+                            patient_id = appt.get("patientId")
+                            patient_id_map[patient_guid] = patient_id
+                            st.write(f"Found patient ID in main response: {patient_guid} -> {patient_id}")
+                        # Or it might be embedded in a different field
+                        elif "patient" in appt and isinstance(appt.get("patient"), dict):
+                            patient_data = appt.get("patient")
+                            if "id" in patient_data:
+                                patient_id = patient_data.get("id")
+                                patient_id_map[patient_guid] = patient_id
+                                st.write(f"Found patient ID in patient object: {patient_guid} -> {patient_id}")
                 
                 # Process appointments
                 data = []
