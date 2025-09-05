@@ -444,10 +444,11 @@ if st.button("Fetch Appointments"):
                     # Extract detailed insurance info if available
                     primary_insurance = basic_primary_insurance
                     primary_policy = basic_primary_policy
+                   
                     
                     secondary_insurance = basic_secondary_insurance
                     secondary_policy = basic_secondary_policy
-                    
+               
                     
                     # Get detailed insurance information from the billing profiles API
                     if patient_id != "N/A" and str(patient_id) in insurance_details_map:
@@ -468,38 +469,13 @@ if st.button("Fetch Appointments"):
                                     primary_insurance = primary_policy_info.get("planName", basic_primary_insurance)
                                     
                                     
-                                    # Format dates if they're not None
-                                    if primary_policy_start:
-                                        try:
-                                            primary_policy_start = datetime.fromisoformat(primary_policy_start.replace('Z', '+00:00')).strftime('%Y-%m-%d')
-                                        except:
-                                            pass
-                                    
-                                    if primary_policy_end:
-                                        try:
-                                            primary_policy_end = datetime.fromisoformat(primary_policy_end.replace('Z', '+00:00')).strftime('%Y-%m-%d')
-                                        except:
-                                            pass
                                 
                                 # Secondary insurance (key "2")
                                 if "2" in policies:
                                     secondary_policy_info = policies["2"]
                                     secondary_insurance = secondary_policy_info.get("planName", basic_secondary_insurance)
                                     
-                                  
-                                    
-                                    # Format dates if they're not None
-                                    if secondary_policy_start:
-                                        try:
-                                            secondary_policy_start = datetime.fromisoformat(secondary_policy_start.replace('Z', '+00:00')).strftime('%Y-%m-%d')
-                                        except:
-                                            pass
-                                    
-                                    if secondary_policy_end:
-                                        try:
-                                            secondary_policy_end = datetime.fromisoformat(secondary_policy_end.replace('Z', '+00:00')).strftime('%Y-%m-%d')
-                                        except:
-                                            pass
+                                   
                    
                     # Add to data collection
                     data.append({
@@ -514,8 +490,10 @@ if st.button("Fetch Appointments"):
                         "Appointment Mode": appointment_mode,
                         "Primary Insurance": primary_insurance,
                         "Primary Policy Number": primary_policy,
+                        
                         "Secondary Insurance": secondary_insurance,
                         "Secondary Policy Number": secondary_policy,
+                       
                         "Phone": phone
                     })
                 
