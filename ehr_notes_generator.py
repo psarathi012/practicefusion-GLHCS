@@ -3,17 +3,25 @@ import pandas as pd
 import anthropic
 import os
 from datetime import datetime
-from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
+# Note: dotenv is not needed for Streamlit Cloud, but keeping import for local development
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 # Initialize Anthropic client
 @st.cache_resource
 def get_anthropic_client():
-    api_key = os.getenv("ANTHROPIC_API_KEY")
+    # Try Streamlit secrets first (for Cloud), then fall back to environment variables (for local)
+    try:
+        api_key = st.secrets["ANTHROPIC_API_KEY"]
+    except (KeyError, FileNotFoundError):
+        api_key = os.getenv("ANTHROPIC_API_KEY")
+    
     if not api_key:
-        st.error("⚠️ ANTHROPIC_API_KEY not found in environment variables")
+        st.error("⚠️ ANTHROPIC_API_KEY not found in environment variables or secrets")
         return None
     return anthropic.Anthropic(api_key=api_key)
 
