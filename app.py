@@ -3,10 +3,10 @@ import requests
 import pandas as pd
 import psycopg2
 import os
-from datetime import date
-from dotenv import load_dotenv
+from datetime import date, datetime, timedelta
+# from dotenv import load_dotenv
 
-load_dotenv()  # Load environment variables from .env file
+# load_dotenv()  # Load environment variables from .env file
 
 # Add this right after load_dotenv() to debug
 
@@ -17,11 +17,11 @@ BASE_URL = "https://static.practicefusion.com"
 
 def get_db_connection():
     return psycopg2.connect(
-        host=st.secrets["database"]["host"],
-        port=st.secrets["database"]["port"],
-        dbname=st.secrets["database"]["dbname"],
-        user=st.secrets["database"]["user"],
-        password=st.secrets["database"]["password"]
+       host = "aws-1-us-east-1.pooler.supabase.com",
+    dbname = "postgres",
+    user = "postgres.hownxddqrylfanrqytxa",
+    password = "$7Q3WEzArEqoYkL$",
+    port = "5432"
        
     )
 # 🔹 Fetch latest session from DB
@@ -71,9 +71,18 @@ if st.button("Fetch Patients"):
                 
             }
         # Step 1: Fetch patients
+        # Convert dates to ET timezone format
+        # Start date: beginning of day in ET (00:00:00 ET = 04:00:00 UTC)
+        start_datetime = f"{start_date}T04:00:00.000Z"
+        
+        # End date: end of day in ET (23:59:59 ET = 03:59:59 UTC next day)
+        end_date_obj = datetime.combine(end_date, datetime.min.time())
+        next_day = end_date_obj + timedelta(days=1)
+        end_datetime = f"{next_day.strftime('%Y-%m-%d')}T03:59:59.000Z"
+        
         payload = {
-            "startMinimumDateTimeUtc": f"{start_date}T00:00:00.000Z",
-            "startMaximumDateTimeUtc": f"{end_date}T23:59:59.999Z"
+            "startMinimumDateTimeUtc": start_datetime,
+            "startMaximumDateTimeUtc": end_datetime
         }
 
        
@@ -117,7 +126,6 @@ if st.button("Fetch Patients"):
                 if Dob:
                     # Parse the datetime and extract just the date part
                     try:
-                        from datetime import datetime
                         dob_datetime = datetime.fromisoformat(Dob.replace('Z', '+00:00'))
                         Dob = dob_datetime.strftime('%Y-%m-%d')  # Format as YYYY-MM-DD
                     except:
