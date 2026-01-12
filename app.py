@@ -29,11 +29,11 @@ def get_latest_session():
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("""
-        SELECT cookie, csrf_token 
+        SELECT extra_info->>'cookie', extra_info->>'csrf_token' 
         FROM ehr_schema.sessions_table
-        WHERE expires_at > NOW()
-        AND source = 'practicefusion'
-        ORDER BY expires_at DESC
+        WHERE expiry > NOW()
+        AND platform = 'practicefusion'
+        ORDER BY expiry DESC
         LIMIT 1;
     """)
     row = cur.fetchone()
